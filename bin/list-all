@@ -18,12 +18,20 @@ sort_versions() {
     LC_ALL=C sort -t. -k 1,1 -k 2,2n -k 3,3n -k 4,4n -k 5,5n | awk '{print $2}'
 }
 
+github_auth() {
+  if [ -n "$GITHUB_API_TOKEN" ]; then
+    echo "-H 'Authorization: token $GITHUB_API_TOKEN'"
+  fi
+}
+
 # https://github.com/Banno/asdf-hashicorp/blob/master/bin/list-all
-list_all () {
+list_all() {
   local versions=""
   local version
   local url="https://api.github.com/repos/${repository}/releases"
-  for version in $(curl --silent "${url}" | \
+  local auth=""
+  auth=$(github_auth)
+  for version in $(curl --silent ${auth} "${url}" | \
     grep '"tag_name":' | \
     sed 's/.*"v\([^"]\+\)".*/\1/' |
     sort_versions); do
