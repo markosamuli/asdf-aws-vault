@@ -1,3 +1,13 @@
+# -*- mode: yaml -*-
+# vim:ts=2:sw=2:ai:si:syntax=yaml
+#########################
+# Travis CI configuration
+#########################
+---
+
+# Run tests against master branch only
+if: branch IN (master)
+
 language: generic
 
 script: 
