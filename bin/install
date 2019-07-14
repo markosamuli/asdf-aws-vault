@@ -7,33 +7,83 @@ ASDF_INSTALL_TYPE=${ASDF_INSTALL_TYPE:-version}
 [ -n "$ASDF_INSTALL_VERSION" ] || (>&2 echo 'Missing ASDF_INSTALL_VERSION' && exit 1)
 [ -n "$ASDF_INSTALL_PATH" ] || (>&2 echo 'Missing ASDF_INSTALL_PATH' && exit 1)
 
+###
+# Print error into STDERR
+###
+error() {
+    echo "$@" 1>&2
+}
+
 install_plugin() {
   local install_type=$1
   local version=$2
   local install_path=$3
 
-  local bin_install_path="$install_path/bin"
-  local download_url="$(get_download_url $install_type $version)"
+  local bin_install_path="${install_path}/bin"
+  local download_url=""
+  download_url="$(get_download_url ${install_type} ${version})"
 
   mkdir -p "${bin_install_path}"
 
   local bin_path="${bin_install_path}/aws-vault"
   echo "Downloading aws-vault from ${download_url}"
-  curl -s -L "$download_url" -o "$bin_path"
-  chmod +x $bin_path
+  curl -s -L "${download_url}" -o "${bin_path}"
+  chmod +x ${bin_path}
 }
 
 get_platform() {
   [ "Linux" = "$(uname)" ] && echo "linux" || echo "darwin"
 }
 
+###
+# Only version from 3.5.0 and above have Linux binaries
+###
+get_supported_version() {
+  if [ "Linux" = "$(uname)" ]; then
+    echo "3.5"
+  else
+    echo "1.0"
+  fi
+}
+
+###
+# Check version is supported on the current platform
+###
+check_supported_version() {
+    local IFS=.
+    local requested=($1)
+    local supported_version=""
+    supported_version=$(get_supported_version)
+    if [ -z "${supported_version}" ]; then
+        return 1
+    fi
+    local supported=(${supported_version})
+    if ((${requested[0]} < ${supported[0]})); then
+        return 1
+    fi
+    if ((${requested[0]} > ${supported[0]})); then
+        return 0
+    fi
+    if ((${requested[1]} < ${supported[1]})); then
+        return 1
+    fi
+    return 0
+}
+
 get_download_url() {
   local install_type=$1
   local version=$2
 
-  local platform=$(get_platform)
+  local platform=""
+  platform=$(get_platform)
+
+  if ! check_supported_version ${version}; then
+    error "v${version} is not supported on ${platform}"
+    exit 1
+  fi
+
   local repository="https://github.com/99designs/aws-vault"
   echo "${repository}/releases/download/v${version}/aws-vault-${platform}-amd64"
 }
 
-install_plugin "$ASDF_INSTALL_TYPE" "$ASDF_INSTALL_VERSION" "$ASDF_INSTALL_PATH"
+install_plugin "${ASDF_INSTALL_TYPE}" "${ASDF_INSTALL_VERSION}" "${ASDF_INSTALL_PATH}"

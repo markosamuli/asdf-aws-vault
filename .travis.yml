@@ -8,9 +8,10 @@
 # Run tests against master branch only
 if: branch IN (master)
 
-language: generic
+language: c
 
 script:
+  - ./bin/list-all
   - asdf plugin-test aws-vault ${TRAVIS_BUILD_DIR} "aws-vault --version"
 
 before_script:

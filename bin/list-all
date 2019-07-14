@@ -1,47 +1,85 @@
 #!/usr/bin/env bash
 
-set \
-  -o nounset \
-  -o pipefail \
-  -o errexit
+set -e
+set -o pipefail
+set -o nounset
 
-# GitHub repository name
-readonly repository="99designs/aws-vault"
-
-get_platform() {
-  [ "Linux" = "$(uname)" ] && echo "linux64" || echo "osx-amd64"
+###
+# Print error into STDERR
+###
+error() {
+    echo "$@" 1>&2
 }
 
-# stolen from https://github.com/rbenv/ruby-build/pull/631/files#diff-fdcfb8a18714b33b07529b7d02b54f1dR942
-sort_versions() {
-  sed 'h; s/[+-]/./g; s/.p\([[:digit:]]\)/.z\1/; s/$/.z/; G; s/\n/ /' | \
-    LC_ALL=C sort -t. -k 1,1 -k 2,2n -k 3,3n -k 4,4n -k 5,5n | awk '{print $2}'
-}
-
-github_auth() {
-  if [ -n "$GITHUB_API_TOKEN" ]; then
-    echo "-H 'Authorization: token $GITHUB_API_TOKEN'"
+###
+# Only version from 3.5.0 and above have Linux binaries
+###
+get_supported_version() {
+  if [ "Linux" = "$(uname)" ]; then
+    echo "3.5"
+  else
+    echo "1.0"
   fi
+}
+
+###
+# Check version is supported on the current platform
+###
+check_supported_version() {
+    local IFS=.
+    local requested=($1)
+    local supported_version=""
+    supported_version=$(get_supported_version)
+    if [ -z "${supported_version}" ]; then
+        return 1
+    fi
+    local supported=(${supported_version})
+    if ((${requested[0]} < ${supported[0]})); then
+        return 1
+    fi
+    if ((${requested[0]} > ${supported[0]})); then
+        return 0
+    fi
+    if ((${requested[1]} < ${supported[1]})); then
+        return 1
+    fi
+    return 0
 }
 
 # https://github.com/Banno/asdf-hashicorp/blob/master/bin/list-all
 list_all() {
   local versions=""
+  local tag_name
   local version
-  local url="https://api.github.com/repos/${repository}/releases"
-  local auth=""
-  auth=$(github_auth)
-  for version in $(curl --silent ${auth} "${url}" | \
-    grep '"tag_name":' | \
-    sed 's/.*"v\([^"]\+\)".*/\1/' |
-    sort_versions); do
-    if [[ -z "${versions}" ]]; then
-      versions="${version}"
-    else
-      versions="${version} ${versions}"
+  local url="https://api.github.com/repos/99designs/aws-vault/releases"
+
+  # cURL arguments
+  declare -a args=()
+  args+=("--silent")
+  if [ -n "${GITHUB_API_TOKEN}" ]; then
+    args+=('-H' "Authorization: token ${GITHUB_API_TOKEN}")
+  fi
+  args+=("${url}")
+
+  # get all release tags
+  local releases=""
+  releases=$(curl "${args[@]}" | grep -o -E '"tag_name": "v[^"]*"' | sed 's/ //g')
+  for version in ${releases}; do
+    version="${version/\"tag_name\":/}"
+    version="${version//\"/}"
+    version="${version/v/}"
+    # not all versions are supported on Linux
+    if check_supported_version ${version}; then
+      if [[ -z "${versions}" ]]; then
+        versions="${version}"
+      else
+        versions="${version} ${versions}"
+      fi
     fi
   done
   echo "${versions}"
 }
+
+command -v curl >/dev/null || { error "curl not found"; exit 1; }
 
 list_all
