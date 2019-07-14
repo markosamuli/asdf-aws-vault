@@ -1,6 +1,7 @@
-language: c
+language: generic
 
-script: asdf plugin-test aws-vault https://github.com/virtualstaticvoid/asdf-aws-vault.git "aws-vault --version"
+script: 
+  - asdf plugin-test aws-vault https://github.com/markosamuli/asdf-aws-vault.git "aws-vault --version"
 
 before_script:
   - git clone --branch master --depth=1 https://github.com/asdf-vm/asdf.git asdf
@@ -13,7 +14,9 @@ os:
 addons:
   apt:
     packages:
-    - jq
-
-before_install:
-  - if [ $TRAVIS_OS_NAME = osx ]; then brew update && brew install jq; fi
+      - jq
+    update: true
+  homebrew:
+    packages:
+      - jq
+    update: true
