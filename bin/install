@@ -33,7 +33,8 @@ get_download_url() {
   local version=$2
 
   local platform=$(get_platform)
-  echo "https://github.com/99designs/aws-vault/releases/download/${version}/aws-vault-${platform}-amd64"
+  local repository="https://github.com/99designs/aws-vault"
+  echo "${repository}/releases/download/v${version}/aws-vault-${platform}-amd64"
 }
 
 install_plugin "$ASDF_INSTALL_TYPE" "$ASDF_INSTALL_VERSION" "$ASDF_INSTALL_PATH"
