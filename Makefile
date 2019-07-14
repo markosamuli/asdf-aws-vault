@@ -9,5 +9,8 @@ test:
 lint: $(PRE_COMMIT_HOOKS)
 	@pre-commit run -a
 
+.PHONY: install-git-hooks
+install-git-hooks: $(PRE_COMMIT_HOOKS)
+
 $(PRE_COMMIT_HOOKS):
-	@pre-commit install
+	@pre-commit install --install-hooks
