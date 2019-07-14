@@ -10,13 +10,3 @@ before_script:
 os:
   - linux
   - osx
-
-addons:
-  apt:
-    packages:
-      - jq
-    update: true
-  homebrew:
-    packages:
-      - jq
-    update: true
