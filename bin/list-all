@@ -2,7 +2,6 @@
 
 set -e
 set -o pipefail
-set -o nounset
 
 ###
 # Print error into STDERR
