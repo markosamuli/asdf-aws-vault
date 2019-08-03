@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+# set -e
 set -o pipefail
 
 ASDF_INSTALL_TYPE=${ASDF_INSTALL_TYPE:-version}
@@ -14,12 +14,16 @@ error() {
     echo "$@" 1>&2
 }
 
+###
+# Install plugin
+###
 install_plugin() {
   local install_type=$1
   local version=$2
   local install_path=$3
 
   local bin_install_path="${install_path}/bin"
+  local download_res
   local download_url=""
   download_url="$(get_download_url ${install_type} ${version})"
 
@@ -27,10 +31,25 @@ install_plugin() {
 
   local bin_path="${bin_install_path}/aws-vault"
   echo "Downloading aws-vault from ${download_url}"
-  curl -s -L "${download_url}" -o "${bin_path}"
+  if command -v curl &>/dev/null; then
+    download_cmd="curl"
+    curl -s -f -L "${download_url}" -o "${bin_path}"
+    download_res=$?
+  else
+    download_cmd="wget"
+    wget -q "${download_url}" -O "${bin_path}"
+    download_res=$?
+  fi
+  if [ "${download_res}" != "0" ]; then
+    error "Failed to download aws-vault"
+    exit 1
+  fi
   chmod +x ${bin_path}
 }
 
+###
+# Get platform name
+###
 get_platform() {
   [ "Linux" = "$(uname)" ] && echo "linux" || echo "darwin"
 }
@@ -73,7 +92,7 @@ check_supported_version() {
 get_download_url() {
   local install_type=$1
   local version=$2
-
+  version=${version/v/}
   local platform=""
   platform=$(get_platform)
 
